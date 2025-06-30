@@ -1,10 +1,12 @@
 import requests
 import sys
 import csv
+import os
 from bs4 import BeautifulSoup
 from datetime import datetime
     
 url = sys.argv[1] if len(sys.argv) > 1 else input("Enter a fravega item url: ")
+csv_file = "prices.csv"
 
 def main():
 
@@ -12,11 +14,12 @@ def main():
 
     price = get_price(soup)
     num_price = clean_price(price)
-    last_price = clean_price(get_last_price(url,"C:/Users/tadeo/OneDrive/Escritorio/scraper/prices.csv"))
-    if last_price:        
-        if num_price == last_price:
+    last_price = get_last_price(url,csv_file)
+    last_price_num = clean_price(last_price) if last_price else None
+    if last_price_num is not None:        
+        if num_price == last_price_num:
             state = "No changes"
-        elif num_price > last_price:
+        elif num_price > last_price_num:
             state = "Higher price"
         else:
             state = "Lower price"
@@ -24,17 +27,26 @@ def main():
         state = "First log"
 
     date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    if not os.path.exists(csv_file):
+        with open(csv_file,"w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["Date", "URL", "Price", "State"])
+
     with open("prices.csv", "a", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([date,url,price,state])
     print(f"Saved: {date}, {price}")
 
-def clean_price(price_str):
-    return float(price_str.replace("$","").replace(".",""))
 
-def get_last_price(url,csv_file):
+
+
+def clean_price(price_str):
+    return float(price_str.replace("$","").replace(".","").replace(",","."))
+
+def get_last_price(url,csv_f):
     try:
-        with open(csv_file,"r") as f:
+        with open(csv_f,"r") as f:
             reader = csv.reader(f)
             prices = [row for row in reader if row[1] == url]
             if prices:
