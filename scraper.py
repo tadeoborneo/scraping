@@ -11,11 +11,37 @@ def main():
     soup = BeautifulSoup(get_html(url),"html.parser")
 
     price = get_price(soup)
+    num_price = clean_price(price)
+    last_price = clean_price(get_last_price(url,"C:/Users/tadeo/OneDrive/Escritorio/scraper/prices.csv"))
+    if last_price:        
+        if num_price == last_price:
+            state = "No changes"
+        elif num_price > last_price:
+            state = "Higher price"
+        else:
+            state = "Lower price"
+    else:
+        state = "First log"
+
     date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open("prices.csv", "a", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow([date,url,price])
+        writer.writerow([date,url,price,state])
     print(f"Saved: {date}, {price}")
+
+def clean_price(price_str):
+    return float(price_str.replace("$","").replace(".",""))
+
+def get_last_price(url,csv_file):
+    try:
+        with open(csv_file,"r") as f:
+            reader = csv.reader(f)
+            prices = [row for row in reader if row[1] == url]
+            if prices:
+                return prices[-1][2]
+    except FileNotFoundError:
+        return None
+
 
 def get_html(url):
     response = requests.get(url)
@@ -31,5 +57,6 @@ def get_price(soup):
         return price_span.text.strip()
     print("Unable to find price")
     exit()
+
 
 main()
